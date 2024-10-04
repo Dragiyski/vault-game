@@ -1,0 +1,23 @@
+{
+    "name": "@dragiyski/vault-mini-game",
+    "private": true,
+    "type": "module",
+    "author": {
+        "name": "Plamen Dragiyski",
+        "email": "plamen@dragiyski.org"
+    },
+    "scripts": {
+        "dev": "vite",
+        "build": "tsc && vite build --emptyOutDir",
+        "preview": "vite preview"
+    },
+    "devDependencies": {
+        "typescript": "^5.6.2",
+        "vite": "^5.4.8",
+        "vite-plugin-static-copy": "^1.0.6"
+    },
+    "dependencies": {
+        "@types/node": "^22.7.4",
+        "pixi.js": "^8.4.1"
+    }
+}
