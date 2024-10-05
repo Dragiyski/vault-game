@@ -1,6 +1,8 @@
 import { Application, Assets, Sprite, Texture } from "pixi.js";
 
 import backgroundImageUrl from './assets/images/background.png';
+import doorImageUrl from './assets/images/door.png';
+import handleImageUrl from './assets/images/handle.png';
 import { VaultViewInitOptions } from "../@types/app/view";
 
 const backgroundInfo = {
@@ -55,22 +57,45 @@ export default class VaultView {
         await this.pixi.init(options);
 
         Assets.backgroundLoad([
-            backgroundImageUrl
+            backgroundImageUrl,
+            doorImageUrl,
         ]);
 
         this.#texture.background = await Assets.load(backgroundImageUrl);
         this.#backgroundAspectRatio = this.#texture.background.width / this.#texture.background.height;
+
+        this.#texture.door = await Assets.load(doorImageUrl);
+        this.#texture.handle = await Assets.load(handleImageUrl);
+
         this.#sprite.background = new Sprite(this.#texture.background);
-        this.#sprite.background.anchor.set(0.5, 0.5);
+        this.#sprite.background.anchor.set(0.5);
+
+        this.#sprite.handle = new Sprite(this.#texture.handle);
+        this.#sprite.handle.anchor.set(0.5);
+
+        this.#sprite.door = new Sprite(this.#texture.door);
+
+        // The door is perfect circle with hinges on the right side.
+        // The anchor point is the center of the door.
+        this.#sprite.door.anchor.set(
+            (1832 / 2013) * 0.5,
+            0.5
+        )
 
         this.pixi.renderer.addListener('resize', this.#onScreenResize, this);
         this.#onScreenResize(this.pixi.renderer.width, this.pixi.renderer.height, this.pixi.renderer.resolution);
 
         this.pixi.stage.addChild(this.#sprite.background);
+        // It seems while Sprite class have "children" element, pixi v8.x report using sprite as containers as deprecated.
+        // For now, all sprites will be at the global level, but it is preferred as connected sprites like the door + handle
+        // be in a container so they can move/resize with the container.
+        this.pixi.stage.addChild(this.#sprite.door);
+        this.pixi.stage.addChild(this.#sprite.handle);
     }
 
     #onScreenResize(width: number, height: number, _resolution: number) {
         this.#resizeBackground(width, height, _resolution);
+        this.#resizeClosedDoor(width, height, _resolution);
     }
 
     #resizeBackground(width: number, height: number, _resolution: number) {
@@ -110,5 +135,23 @@ export default class VaultView {
                 this.#sprite.background.height * resizeToFit,
             )
         }
+    }
+
+    #resizeClosedDoor(width: number, height: number, _resolution: number) {
+        this.#sprite.door.width = (2013 / 5995) * this.#sprite.background.width;
+        this.#sprite.door.height = (1832 / 3000) * this.#sprite.background.height;
+        // For some reason the vault hole is not at the center of the background image.
+        this.#sprite.door.x = width * 0.5 - (30 / 5995) * this.#sprite.background.width;
+        this.#sprite.door.y = height * 0.5 - (30 / 3000) * this.#sprite.background.height;
+
+        this.#resizeClosedDoorHandle(width, height, _resolution);
+    }
+
+    #resizeClosedDoorHandle(width: number, height: number, _resolution: number) {
+        this.#sprite.handle.width = (677 / 5995) * this.#sprite.background.width;
+        this.#sprite.handle.height = (748 / 3000) * this.#sprite.background.height;
+        // For some reason the vault hole is not at the center of the background image.
+        this.#sprite.handle.x = width * 0.5 - (30 / 5995) * this.#sprite.background.width;
+        this.#sprite.handle.y = height * 0.5 - (30 / 3000) * this.#sprite.background.height;
     }
 }
