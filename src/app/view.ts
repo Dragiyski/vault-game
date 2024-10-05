@@ -1,5 +1,6 @@
-import { VaultViewInitOptions } from "../@types/app/view";
-import { Application, Assets, Sprite, Texture } from "pixi.js";
+import { VaultViewInitOptions } from '../@types/app/view';
+import { Application, Assets, DEG_TO_RAD, RAD_TO_DEG, Sprite, Texture } from 'pixi.js';
+import gsap from '../lib/gsap';
 
 import backgroundImageUrl from './assets/images/background.png';
 import doorImageUrl from './assets/images/door.png';
@@ -15,6 +16,8 @@ const backgroundInfo = {
         height: 2000 / 3000,
     }
 }
+
+const pi2 = Math.PI * 2;
 
 /**
  * The View for the vault.
@@ -38,6 +41,11 @@ export default class VaultView {
     #sprite: Record<string, Sprite> = {};
 
     #backgroundAspectRatio: number;
+    #job: Record<string, Promise<any> | null> = {
+        handle: null
+    };
+
+    #stateDoor = false;
 
     constructor() {
         this.#backgroundAspectRatio = 1;
@@ -107,11 +115,23 @@ export default class VaultView {
         // It seems while Sprite class have "children" element, pixi v8.x report using sprite as containers as deprecated.
         // For now, all sprites will be at the global level, but it is preferred as connected sprites like the door + handle
         // be in a container so they can move/resize with the container.
-        this.pixi.stage.addChild(this.#sprite.door);
-        this.pixi.stage.addChild(this.#sprite.handleShadow);
-        this.pixi.stage.addChild(this.#sprite.handle);
-        this.pixi.stage.addChild(this.#sprite.doorOpenShadow);
-        this.pixi.stage.addChild(this.#sprite.doorOpen);
+        this.#updateDoorState();
+    }
+
+    #updateDoorState() {
+        if (this.#stateDoor) {
+            this.pixi.stage.removeChild(this.#sprite.door);
+            this.pixi.stage.removeChild(this.#sprite.handleShadow);
+            this.pixi.stage.removeChild(this.#sprite.handle);
+            this.pixi.stage.addChild(this.#sprite.doorOpenShadow);
+            this.pixi.stage.addChild(this.#sprite.doorOpen);
+        } else {
+            this.pixi.stage.addChild(this.#sprite.door);
+            this.pixi.stage.addChild(this.#sprite.handleShadow);
+            this.pixi.stage.addChild(this.#sprite.handle);
+            this.pixi.stage.removeChild(this.#sprite.doorOpenShadow);
+            this.pixi.stage.removeChild(this.#sprite.doorOpen);
+        }
     }
 
     #onScreenResize(width: number, height: number, _resolution: number) {
@@ -190,5 +210,72 @@ export default class VaultView {
         this.#sprite.doorOpen.y = height * 0.5 - (30 / 3000) * this.#sprite.background.height;
         this.#sprite.doorOpenShadow.x = this.#sprite.doorOpen.x + (30 / 1245) * this.#sprite.doorOpen.width;
         this.#sprite.doorOpenShadow.y = this.#sprite.doorOpen.y + (60 / 1826) * this.#sprite.doorOpen.height;
+    }
+
+    async rotateHandleLeft() {
+        if (this.#job.handle != null) {
+            return this.#job.handle;
+        }
+        return this.#job.handle = (new Promise((resolve, reject) => {
+            gsap.to([
+                this.#sprite.handle,
+                this.#sprite.handleShadow,
+            ], {
+                duration: 1.2,
+                ease: 'elastic.out(1, 0.3)',
+                pixi: {
+                    rotation: this.#sprite.handle.rotation * RAD_TO_DEG - 60
+                },
+                repeat: 0,
+                onComplete: () => {
+                    this.#sprite.handle.rotation = (this.#sprite.handle.rotation % pi2 + pi2) % pi2;
+                    this.#sprite.handleShadow.rotation = (this.#sprite.handle.rotation % pi2 + pi2) % pi2;
+                    resolve(this);
+                },
+                onInterrupt: () => {
+                    reject(new DOMException('Animation aborted: VaultView.rotateLeft', 'AbortError'));
+                }
+            });
+        })).finally(() => {
+            this.#job.handle = null;
+        });
+    }
+
+    async rotateHandleRight() {
+        if (this.#job.handle != null) {
+            return this.#job.handle;
+        }
+        console.log(this.#job.handle);
+        return this.#job.handle = (new Promise((resolve, reject) => {
+            gsap.to([
+                this.#sprite.handle,
+                this.#sprite.handleShadow,
+            ], {
+                duration: 1.2,
+                ease: 'elastic.out(1, 0.3)',
+                pixi: {
+                    rotation: this.#sprite.handle.rotation * RAD_TO_DEG + 60
+                },
+                repeat: 0,
+                onComplete: () => {
+                    this.#sprite.handle.rotation = (this.#sprite.handle.rotation % pi2 + pi2) % pi2;
+                    this.#sprite.handleShadow.rotation = (this.#sprite.handle.rotation % pi2 + pi2) % pi2;
+                    resolve(this);
+                },
+                onInterrupt: () => {
+                    reject(new DOMException('Animation aborted: VaultView.rotateLeft', 'AbortError'));
+                }
+            });
+        })).finally(() => {
+            this.#job.handle = null;
+        });
+    }
+
+    rotateHandleTo(degrees: number) {
+        this.#sprite.handle.rotation = degrees * DEG_TO_RAD;
+    }
+
+    rotateHandleBy(degrees: number) {
+        this.#sprite.handle.rotation += (this.#sprite.handle.rotation * RAD_TO_DEG + degrees) * DEG_TO_RAD;
     }
 }

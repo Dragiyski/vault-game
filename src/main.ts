@@ -7,7 +7,7 @@ import VaultGame from "./app";
         throw new Error('Unable to find the element with id "app"');
     }
 
-    const game = new VaultGame();
+    const game = window.vaultGame = new VaultGame();
 
     await game.init({
         view: {
