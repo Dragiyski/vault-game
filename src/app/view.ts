@@ -1,9 +1,12 @@
+import { VaultViewInitOptions } from "../@types/app/view";
 import { Application, Assets, Sprite, Texture } from "pixi.js";
 
 import backgroundImageUrl from './assets/images/background.png';
 import doorImageUrl from './assets/images/door.png';
 import handleImageUrl from './assets/images/handle.png';
-import { VaultViewInitOptions } from "../@types/app/view";
+import handleShadowImageUrl from './assets/images/handle-shadow.png';
+import doorOpenImageUrl from './assets/images/door-open.png';
+import doorOpenShadowImageUrl from './assets/images/door-open-shadow.png';
 
 const backgroundInfo = {
     /// In screens with very eccentric aspect ratio, we want to ensure the vault and the keyboard/timer screen are visible.
@@ -59,20 +62,30 @@ export default class VaultView {
         Assets.backgroundLoad([
             backgroundImageUrl,
             doorImageUrl,
+            handleImageUrl,
+            handleShadowImageUrl,
+            doorOpenImageUrl,
+            doorOpenShadowImageUrl
         ]);
 
         this.#texture.background = await Assets.load(backgroundImageUrl);
-        this.#backgroundAspectRatio = this.#texture.background.width / this.#texture.background.height;
-
         this.#texture.door = await Assets.load(doorImageUrl);
         this.#texture.handle = await Assets.load(handleImageUrl);
+        this.#texture.handleShadow = await Assets.load(handleShadowImageUrl);
+        this.#texture.doorOpen = await Assets.load(doorOpenImageUrl);
+        this.#texture.doorOpenShadow = await Assets.load(doorOpenShadowImageUrl);
+
+        this.#backgroundAspectRatio = this.#texture.background.width / this.#texture.background.height;
 
         this.#sprite.background = new Sprite(this.#texture.background);
         this.#sprite.background.anchor.set(0.5);
 
         this.#sprite.handle = new Sprite(this.#texture.handle);
         this.#sprite.handle.anchor.set(0.5);
-
+        this.#sprite.handleShadow = new Sprite(this.#texture.handleShadow);
+        this.#sprite.handleShadow.anchor.set(0.5);
+        // this.#sprite.handleShadow.alpha = 0.75;
+        
         this.#sprite.door = new Sprite(this.#texture.door);
 
         // The door is perfect circle with hinges on the right side.
@@ -80,7 +93,12 @@ export default class VaultView {
         this.#sprite.door.anchor.set(
             (1832 / 2013) * 0.5,
             0.5
-        )
+        );
+
+        this.#sprite.doorOpen = new Sprite(this.#texture.doorOpen);
+        this.#sprite.doorOpen.anchor.set(0, 0.5);
+        this.#sprite.doorOpenShadow = new Sprite(this.#texture.doorOpenShadow);
+        this.#sprite.doorOpenShadow.anchor.set(0, 0.5);
 
         this.pixi.renderer.addListener('resize', this.#onScreenResize, this);
         this.#onScreenResize(this.pixi.renderer.width, this.pixi.renderer.height, this.pixi.renderer.resolution);
@@ -90,12 +108,16 @@ export default class VaultView {
         // For now, all sprites will be at the global level, but it is preferred as connected sprites like the door + handle
         // be in a container so they can move/resize with the container.
         this.pixi.stage.addChild(this.#sprite.door);
+        this.pixi.stage.addChild(this.#sprite.handleShadow);
         this.pixi.stage.addChild(this.#sprite.handle);
+        this.pixi.stage.addChild(this.#sprite.doorOpenShadow);
+        this.pixi.stage.addChild(this.#sprite.doorOpen);
     }
 
     #onScreenResize(width: number, height: number, _resolution: number) {
         this.#resizeBackground(width, height, _resolution);
         this.#resizeClosedDoor(width, height, _resolution);
+        this.#resizeOpenedDoor(width, height, _resolution);
     }
 
     #resizeBackground(width: number, height: number, _resolution: number) {
@@ -150,8 +172,23 @@ export default class VaultView {
     #resizeClosedDoorHandle(width: number, height: number, _resolution: number) {
         this.#sprite.handle.width = (677 / 5995) * this.#sprite.background.width;
         this.#sprite.handle.height = (748 / 3000) * this.#sprite.background.height;
+        this.#sprite.handleShadow.width = (658 / 677) * this.#sprite.handle.width;
+        this.#sprite.handleShadow.height = (729 / 748) * this.#sprite.handle.height;
         // For some reason the vault hole is not at the center of the background image.
-        this.#sprite.handle.x = width * 0.5 - (30 / 5995) * this.#sprite.background.width;
-        this.#sprite.handle.y = height * 0.5 - (30 / 3000) * this.#sprite.background.height;
+        this.#sprite.handle.x = width * 0.5 - (40 / 5995) * this.#sprite.background.width;
+        this.#sprite.handle.y = height * 0.5 - (40 / 3000) * this.#sprite.background.height;
+        this.#sprite.handleShadow.x = this.#sprite.handle.x + (16 / 677) * this.#sprite.handle.width
+        this.#sprite.handleShadow.y = this.#sprite.handle.y + (32 / 748) * this.#sprite.handle.height;
+    }
+
+    #resizeOpenedDoor(width: number, height: number, _resolution: number) {
+        this.#sprite.doorOpen.width = (1245 / 5995) * this.#sprite.background.width;
+        this.#sprite.doorOpen.height = (1826 / 3000) * this.#sprite.background.height;
+        this.#sprite.doorOpenShadow.width = (1374 / 1245) * this.#sprite.doorOpen.width;
+        this.#sprite.doorOpenShadow.height = (1819 / 1826) * this.#sprite.doorOpen.height;
+        this.#sprite.doorOpen.x = width * 0.5 + (850 / 5995) * this.#sprite.background.width;
+        this.#sprite.doorOpen.y = height * 0.5 - (30 / 3000) * this.#sprite.background.height;
+        this.#sprite.doorOpenShadow.x = this.#sprite.doorOpen.x + (30 / 1245) * this.#sprite.doorOpen.width;
+        this.#sprite.doorOpenShadow.y = this.#sprite.doorOpen.y + (60 / 1826) * this.#sprite.doorOpen.height;
     }
 }
