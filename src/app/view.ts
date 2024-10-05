@@ -42,7 +42,8 @@ export default class VaultView {
 
     #backgroundAspectRatio: number;
     #job: Record<string, Promise<any> | null> = {
-        handle: null
+        handle: null,
+        door: null
     };
 
     #stateDoor = false;
@@ -221,7 +222,7 @@ export default class VaultView {
                 this.#sprite.handle,
                 this.#sprite.handleShadow,
             ], {
-                duration: 1.2,
+                duration: 1.5,
                 ease: 'elastic.out(1, 0.3)',
                 pixi: {
                     rotation: this.#sprite.handle.rotation * RAD_TO_DEG - 60
@@ -245,13 +246,12 @@ export default class VaultView {
         if (this.#job.handle != null) {
             return this.#job.handle;
         }
-        console.log(this.#job.handle);
         return this.#job.handle = (new Promise((resolve, reject) => {
             gsap.to([
                 this.#sprite.handle,
                 this.#sprite.handleShadow,
             ], {
-                duration: 1.2,
+                duration: 1.5,
                 ease: 'elastic.out(1, 0.3)',
                 pixi: {
                     rotation: this.#sprite.handle.rotation * RAD_TO_DEG + 60
@@ -271,11 +271,130 @@ export default class VaultView {
         });
     }
 
-    rotateHandleTo(degrees: number) {
-        this.#sprite.handle.rotation = degrees * DEG_TO_RAD;
+    async openDoor() {
+        if (this.#job.door != null) {
+            return this.#job.door;
+        }
+        if (this.#stateDoor) {
+            return this;
+        }
+        return this.#job.door = (new Promise((resolve, reject) => {
+            const timeline = gsap.timeline({
+                paused: true,
+                onStart: () => {
+                    this.#sprite.doorOpen.alpha = 0;
+                    this.#sprite.doorOpenShadow.alpha = 0;
+                    this.#sprite.door.alpha = 1;
+                    this.#sprite.handleShadow.alpha = 1;
+                    this.#sprite.handle.alpha = 1;
+                    this.pixi.stage.addChild(this.#sprite.door);
+                    this.pixi.stage.addChild(this.#sprite.handleShadow);
+                    this.pixi.stage.addChild(this.#sprite.handle);
+                    this.pixi.stage.addChild(this.#sprite.doorOpenShadow);
+                    this.pixi.stage.addChild(this.#sprite.doorOpen);
+                },
+                onComplete: () => {
+                    this.#stateDoor = true;
+                    this.#updateDoorState();
+                    resolve(this);
+                },
+                onInterrupt: () => {
+                    this.#updateDoorState();
+                    reject(new DOMException('Animation aborted: VaultView.rotateLeft', 'AbortError'));
+                },
+                repeat: 0
+            });
+            timeline.to([
+                this.#sprite.door,
+                this.#sprite.handle,
+                this.#sprite.handleShadow
+            ], {
+                duration: 0.5,
+                ease: 'power2.inOut',
+                pixi: {
+                    alpha: 0
+                }
+            }, 0);
+            timeline.to([
+                this.#sprite.doorOpen,
+                this.#sprite.doorOpenShadow
+            ], {
+                duration: 0.5,
+                ease: 'power2.inOut',
+                pixi: {
+                    alpha: 1
+                }
+            }, 0);
+            timeline.play();
+        })).finally(() => {
+            this.#job.door = null;
+        });
     }
 
-    rotateHandleBy(degrees: number) {
-        this.#sprite.handle.rotation += (this.#sprite.handle.rotation * RAD_TO_DEG + degrees) * DEG_TO_RAD;
+    closeDoor() {
+        if (this.#job.door != null) {
+            return this.#job.door;
+        }
+        if (!this.#stateDoor) {
+            return this;
+        }
+        return this.#job.door = (new Promise((resolve, reject) => {
+            const timeline = gsap.timeline({
+                paused: true,
+                onStart: () => {
+                    this.#sprite.door.alpha = 0;
+                    this.#sprite.handleShadow.alpha = 0;
+                    this.#sprite.handle.alpha = 0;
+                    this.#sprite.doorOpenShadow.alpha = 1;
+                    this.#sprite.doorOpen.alpha = 1;
+                    this.pixi.stage.addChild(this.#sprite.door);
+                    this.pixi.stage.addChild(this.#sprite.handleShadow);
+                    this.pixi.stage.addChild(this.#sprite.handle);
+                    this.pixi.stage.addChild(this.#sprite.doorOpenShadow);
+                    this.pixi.stage.addChild(this.#sprite.doorOpen);
+                },
+                onComplete: () => {
+                    this.#stateDoor = false;
+                    this.#updateDoorState();
+                    resolve(this);
+                },
+                onInterrupt: () => {
+                    this.#updateDoorState();
+                    reject(new DOMException('Animation aborted: VaultView.rotateLeft', 'AbortError'));
+                },
+                repeat: 0
+            });
+            timeline.to([
+                this.#sprite.door,
+                this.#sprite.handle,
+                this.#sprite.handleShadow
+            ], {
+                duration: 0.5,
+                ease: 'power2.inOut',
+                pixi: {
+                    alpha: 1
+                }
+            }, 0);
+            timeline.to([
+                this.#sprite.doorOpen,
+                this.#sprite.doorOpenShadow
+            ], {
+                duration: 0.5,
+                ease: 'power2.inOut',
+                pixi: {
+                    alpha: 0
+                }
+            }, 0);
+            timeline.play();
+        })).finally(() => {
+            this.#job.door = null;
+        });
+    }
+
+    getSprite(name: string): Sprite | null {
+        if (name in this.#sprite) {
+            return this.#sprite[name];
+        }
+        return null;
     }
 }
