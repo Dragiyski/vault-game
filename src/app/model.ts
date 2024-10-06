@@ -1,11 +1,11 @@
 import { EventEmitter } from 'pixi.js';
 
-enum VaultWheelDirection {
+export enum VaultWheelDirection {
     Clockwise = 'clockwise',
     CounterClockwise = 'counterclockwise'
 };
 
-interface VaultRotationStep {
+export interface VaultRotationStep {
     direction: VaultWheelDirection,
     count: number
 }
