@@ -3,9 +3,21 @@
     <head>
         <meta charset="UTF-8"/>
         <link rel="icon" href="favicon.ico"/>
+        <link rel="manifest" href="/manifest.json">
         <link rel="stylesheet" type="text/css" href="main.css"/>
         <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
         <script type="module" src="main.ts" defer="defer"></script>
+        <script>
+            if ('serviceWorker' in navigator && document.location.protocol === 'https:') {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register(new URL('service-worker.js', document.location.href)).then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    }, err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+                });
+            }
+        </script>
         <title>Vault</title>
     </head>
     <body>
