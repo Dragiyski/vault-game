@@ -1,12 +1,12 @@
 import { EventEmitter } from 'pixi.js';
 
-export enum VaultWheelDirection {
+export enum VaultHandleDirection {
     Clockwise = 'clockwise',
     CounterClockwise = 'counterclockwise'
 };
 
 export interface VaultRotationStep {
-    direction: VaultWheelDirection,
+    direction: VaultHandleDirection,
     count: number
 }
 
@@ -14,18 +14,17 @@ export function generateState(): Array<VaultRotationStep> {
     const result = new Array(3);
     // Only the first direction is chosen at random.
     // All subsequent directions are opposite of the last direction;
-    let lastDirection = Math.random() < 0.5 ? VaultWheelDirection.Clockwise : VaultWheelDirection.CounterClockwise;
+    let lastDirection = Math.random() < 0.5 ? VaultHandleDirection.Clockwise : VaultHandleDirection.CounterClockwise;
     for (let i = 0; i < 3; ++i) {
         const count = Math.floor(Math.random() * 9) + 1;
         result[i] = { direction: lastDirection, count };
-        lastDirection = lastDirection === VaultWheelDirection.Clockwise ? VaultWheelDirection.CounterClockwise : VaultWheelDirection.Clockwise;
+        lastDirection = lastDirection === VaultHandleDirection.Clockwise ? VaultHandleDirection.CounterClockwise : VaultHandleDirection.Clockwise;
     }
     return result;
 }
 
 function fireNextTick(target: EventEmitter, event: string, ...args: any[]) {
     (async () => {})().then(() => {
-        console.log(event);
         target.emit(event, ...args);
     });
 }
@@ -34,18 +33,22 @@ export default class VaultGameModel extends EventEmitter {
     target: Array<VaultRotationStep> | null = null;
     currentIndex: number = 0;
     currentCount: number = 0;
-    lastDirection: VaultWheelDirection | null = null;
+    lastDirection: VaultHandleDirection | null = null;
 
-    resetState() {
+    initState() {
         this.target = generateState();
         this.currentIndex = 0;
         this.currentCount = 0;
         this.lastDirection = null;
+    }
+
+    resetState() {
+        this.initState();
         fireNextTick(this, 'vault.reset');
         return this;
     }
 
-    move(direction: VaultWheelDirection) {
+    move(direction: VaultHandleDirection) {
         if (this.target == null) {
             // If not initialized - do nothing;
             return this;
@@ -78,7 +81,7 @@ export default class VaultGameModel extends EventEmitter {
             }
         }
         if (this.currentIndex >= this.target.length - 1 && this.currentCount == this.target[this.currentIndex].count) {
-            fireNextTick(this, 'valut.unlock');
+            fireNextTick(this, 'vault.unlock');
             // Do nothing until the state is reset;
             this.target = null;
             return this;
