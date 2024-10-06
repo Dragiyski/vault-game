@@ -1,6 +1,8 @@
 import { VaultViewInitOptions } from '../@types/app/view';
-import { Application, Assets, DEG_TO_RAD, RAD_TO_DEG, Sprite, Texture } from 'pixi.js';
+import { Application, Assets, Container, DEG_TO_RAD, PointData, RAD_TO_DEG, Size, Sprite, Texture } from 'pixi.js';
 import gsap from '../lib/gsap';
+
+import sparkPositionData from './sparks.json';
 
 import backgroundImageUrl from './assets/images/background.png';
 import doorImageUrl from './assets/images/door.png';
@@ -8,6 +10,7 @@ import handleImageUrl from './assets/images/handle.png';
 import handleShadowImageUrl from './assets/images/handle-shadow.png';
 import doorOpenImageUrl from './assets/images/door-open.png';
 import doorOpenShadowImageUrl from './assets/images/door-open-shadow.png';
+import blinkImageUrl from './assets/images/blink.png';
 
 const backgroundInfo = {
     /// In screens with very eccentric aspect ratio, we want to ensure the vault and the keyboard/timer screen are visible.
@@ -22,6 +25,18 @@ const pi2 = Math.PI * 2;
 export enum VaultDoorState {
     Opened = 'opened',
     Closed = 'closed'
+};
+
+interface SparkState {
+    container: Container,
+    animation: gsap.core.Timeline | null,
+    info: Array<Spark>
+};
+
+interface Spark {
+    sprite: Sprite,
+    position: PointData,
+    size: Size
 };
 
 /**
@@ -44,6 +59,7 @@ export default class VaultView {
     #initialized = false;
     #texture: Record<string, Texture> = {};
     #sprite: Record<string, Sprite> = {};
+    #sparks: SparkState = { container: new Container(), animation: null, info: [] }
 
     #backgroundAspectRatio: number;
     #job: Record<string, Promise<any> | null> = {
@@ -79,7 +95,8 @@ export default class VaultView {
             handleImageUrl,
             handleShadowImageUrl,
             doorOpenImageUrl,
-            doorOpenShadowImageUrl
+            doorOpenShadowImageUrl,
+            blinkImageUrl
         ]);
 
         this.#texture.background = await Assets.load(backgroundImageUrl);
@@ -88,6 +105,7 @@ export default class VaultView {
         this.#texture.handleShadow = await Assets.load(handleShadowImageUrl);
         this.#texture.doorOpen = await Assets.load(doorOpenImageUrl);
         this.#texture.doorOpenShadow = await Assets.load(doorOpenShadowImageUrl);
+        this.#texture.blink = await Assets.load(blinkImageUrl);
 
         this.#backgroundAspectRatio = this.#texture.background.width / this.#texture.background.height;
 
@@ -113,6 +131,48 @@ export default class VaultView {
         this.#sprite.doorOpenShadow = new Sprite(this.#texture.doorOpenShadow);
         this.#sprite.doorOpenShadow.anchor.set(0, 0.5);
 
+        this.#sparks.animation = gsap.timeline({
+            repeat: -1,
+            yoyo: false,
+            paused: true
+        });
+
+        for (let i = 0; i < sparkPositionData.length; ++i) {
+            const sparkPosition = sparkPositionData[i];
+            const sparkSize = (Math.floor(Math.random() * (128 - 24)) + 24) / 3000;
+            const spark: Spark = {
+                sprite: new Sprite(this.#texture.blink),
+                position: {
+                    x: sparkPosition[0],
+                    y: sparkPosition[1]
+                },
+                size: {
+                    width: sparkSize,
+                    height: sparkSize
+                }
+            };
+            spark.sprite.alpha = 0;
+            // spark.sprite.rotation = Math.random() * Math.PI * 2;
+            const duration = 0.5 + Math.random();
+            const startAt = Math.random() * Math.max(0, 5 - duration);
+            this.#sparks.info.push(spark);
+            this.#sparks.animation.to(spark.sprite, {
+                pixi: {
+                    alpha: 1
+                },
+                ease: 'power2.in',
+                duration: duration * 0.5
+            }, startAt);
+            this.#sparks.animation.to(spark.sprite, {
+                pixi: {
+                    alpha: 0
+                },
+                ease: 'power2.out',
+                duration: duration * 0.5
+            }, startAt + duration * 0.5);
+            this.#sparks.container.addChild(spark.sprite);
+        }
+
         this.pixi.renderer.addListener('resize', this.#onScreenResize, this);
         this.#onScreenResize(this.pixi.renderer.width, this.pixi.renderer.height, this.pixi.renderer.resolution);
 
@@ -130,12 +190,16 @@ export default class VaultView {
             this.pixi.stage.removeChild(this.#sprite.handle);
             this.pixi.stage.addChild(this.#sprite.doorOpenShadow);
             this.pixi.stage.addChild(this.#sprite.doorOpen);
+            this.pixi.stage.addChild(this.#sparks.container);
+            this.#sparks.animation?.play();
         } else {
             this.pixi.stage.addChild(this.#sprite.door);
             this.pixi.stage.addChild(this.#sprite.handleShadow);
             this.pixi.stage.addChild(this.#sprite.handle);
             this.pixi.stage.removeChild(this.#sprite.doorOpenShadow);
             this.pixi.stage.removeChild(this.#sprite.doorOpen);
+            this.pixi.stage.removeChild(this.#sparks.container);
+            this.#sparks.animation?.pause();
         }
     }
 
@@ -181,6 +245,14 @@ export default class VaultView {
                 this.#sprite.background.width * resizeToFit,
                 this.#sprite.background.height * resizeToFit,
             )
+        }
+        this.#resizeSparks();
+    }
+
+    #resizeSparks() {
+        for (const spark of this.#sparks.info) {
+            spark.sprite.position.set(spark.position.x * this.#sprite.background.width, spark.position.y * this.#sprite.background.height);
+            spark.sprite.setSize(spark.size.width * this.#sprite.background.width, spark.size.height * this.#sprite.background.height);
         }
     }
 
@@ -320,6 +392,7 @@ export default class VaultView {
                     // so animation will only be attempted if it actually switch the state.
                     this.#sprite.doorOpen.alpha = Number(this.#stateDoor === VaultDoorState.Opened);
                     this.#sprite.doorOpenShadow.alpha = Number(this.#stateDoor === VaultDoorState.Opened);
+                    this.#sparks.container.alpha = Number(this.#stateDoor === VaultDoorState.Opened);
                     this.#sprite.door.alpha = Number(this.#stateDoor === VaultDoorState.Closed);
                     this.#sprite.handleShadow.alpha = Number(this.#stateDoor === VaultDoorState.Closed);
                     this.#sprite.handle.alpha = Number(this.#stateDoor === VaultDoorState.Closed);
@@ -331,6 +404,7 @@ export default class VaultView {
                     this.pixi.stage.addChild(this.#sprite.handle);
                     this.pixi.stage.addChild(this.#sprite.doorOpenShadow);
                     this.pixi.stage.addChild(this.#sprite.doorOpen);
+                    this.pixi.stage.addChild(this.#sparks.container);
                 },
                 onComplete: () => {
                     this.#stateDoor = state;
@@ -356,7 +430,8 @@ export default class VaultView {
             }, 0);
             timeline.to([
                 this.#sprite.doorOpen,
-                this.#sprite.doorOpenShadow
+                this.#sprite.doorOpenShadow,
+                this.#sparks.container
             ], {
                 duration: 0.5,
                 ease: 'power2.inOut',
