@@ -2,6 +2,8 @@ import { FederatedPointerEvent } from "pixi.js";
 import VaultGameModel, { VaultHandleDirection } from "./model";
 import VaultView, { VaultDoorState } from "./view";
 import { sleep } from '../lib/sleep';
+import '../vendor/swiped-events.min.js';
+import { SwipedEvent } from 'vendor/swiped-events';
 
 export default class VaultController {
     public readonly model: VaultGameModel;
@@ -32,6 +34,8 @@ export default class VaultController {
         this.model.addListener('vault.error', this.#onVaultError, this);
         this.model.addListener('vault.unlock', this.#onVaultUnlock, this);
         this.model.resetState();
+
+        document.addEventListener('swiped', this.#onSwipe.bind(this));
 
         this.#isInitialized = true;
     }
@@ -100,6 +104,18 @@ export default class VaultController {
         }
         const local = event.currentTarget.toLocal(event.global);
         if (local.x < 0) {
+            this.moveCounterClockwise();
+        } else {
+            this.moveClockwise();
+        }
+    }
+
+    #onSwipe(event: Event) {
+        if (!this.#isInitialized || this.#lockUserInteractionCount > 0) {
+            return;
+        }
+        const detail = (event as SwipedEvent).detail;
+        if (detail.dir == 'left') {
             this.moveCounterClockwise();
         } else {
             this.moveClockwise();

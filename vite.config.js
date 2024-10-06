@@ -11,7 +11,8 @@ export default defineConfig({
             input: {
                 main: resolvePath(__dirname, 'src/index.html')
             }
-        }
+        },
+        chunkSizeWarningLimit: 4096
     },
     plugins: [
         viteStaticCopy({
