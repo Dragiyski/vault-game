@@ -1,15 +1,17 @@
 import { VaultGameInitOptions } from "../@types/app";
+import VaultGameModel from "./model";
 import VaultView from "./view";
 
 export default class VaultGame {
     #initialized = false;
 
     public readonly view: VaultView;
-    // model: VaultGameModel;
+    model: VaultGameModel;
     // controller: VaultController;
 
     constructor() {
         this.view = new VaultView();
+        this.model = new VaultGameModel();
     }
 
     async init(options: Partial<VaultGameInitOptions>) {
