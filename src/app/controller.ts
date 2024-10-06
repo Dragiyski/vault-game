@@ -117,7 +117,7 @@ export default class VaultController {
         const detail = (event as SwipedEvent).detail;
         if (detail.dir == 'left') {
             this.moveCounterClockwise();
-        } else {
+        } else if (detail.dir === 'right') {
             this.moveClockwise();
         }
     }

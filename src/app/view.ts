@@ -98,7 +98,6 @@ export default class VaultView {
         this.#sprite.handle.anchor.set(0.5);
         this.#sprite.handleShadow = new Sprite(this.#texture.handleShadow);
         this.#sprite.handleShadow.anchor.set(0.5);
-        // this.#sprite.handleShadow.alpha = 0.75;
         
         this.#sprite.door = new Sprite(this.#texture.door);
 
