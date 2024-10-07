@@ -85,3 +85,5 @@ Once this is done, rotate the handle:
 
 If you mistake, the handle will rotate wildly and the vault combination will be changed. You must start from the beginning.
 If you successfully followed the combination, the vault will open and reveal what is inside. Take a moment to enjoy and start again.
+
+Note: Hacking a vault is difficult and precise work. Be patient and wait for the valve to completely stop moving. A hasty input won't be accepted.
