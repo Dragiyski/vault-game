@@ -65,3 +65,23 @@ The controller is the glue of the above two elements.
 * It reacts to user input and the model by calling appropriate methods in the model and the view according to the business logic.
 * It provides set of methods that can be directly mapped onto user input.
 * Any changes to the user input methods (like adding joystick support), should affect mostly the controller.
+
+# How to play
+
+Opening a vault is difficult and precise work. To start opeining the vault:
+
+1. Open the developer console to start hacking;
+2. Wait for the handle to stop moving completely;
+3. Read the combination from the developer console;
+
+Once this is done, rotate the handle:
+
+* Counter-clockwise:
+  * By clicking on the left side of the handle/door;
+  * Or by swiping left;
+* Clockwise:
+  * By clicking on the right side of the handle/door;
+  * Or by swiping right;
+
+If you mistake, the handle will rotate wildly and the vault combination will be changed. You must start from the beginning.
+If you successfully followed the combination, the vault will open and reveal what is inside. Take a moment to enjoy and start again.
