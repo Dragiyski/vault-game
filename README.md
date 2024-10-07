@@ -25,6 +25,15 @@ Alternatively, the directory can be a document root of a web server or virtual h
 
 An example of HTTPS deployed application can be found here: https://dragiyski.github.io/vault/
 
+### Development
+
+To start the application in a development environment execute
+
+```
+npm install
+npm run dev
+```
+
 ## Code description
 
 The game code is located in `src/app`. It has 3 main components: model, view, and controller.
