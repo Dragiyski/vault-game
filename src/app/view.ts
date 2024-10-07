@@ -1,5 +1,5 @@
 import { VaultViewInitOptions } from '../@types/app/view';
-import { Application, Assets, Container, DEG_TO_RAD, PointData, RAD_TO_DEG, Size, Sprite, Texture } from 'pixi.js';
+import { Application, Assets, Container, DEG_TO_RAD, PointData, RAD_TO_DEG, Rectangle, Size, Sprite, Texture } from 'pixi.js';
 import gsap from '../lib/gsap';
 
 import sparkPositionData from './sparks.json';
@@ -27,17 +27,20 @@ export enum VaultDoorState {
     Closed = 'closed'
 };
 
-interface SparkState {
-    container: Container,
-    animation: gsap.core.Timeline | null,
-    info: Array<Spark>
-};
-
-interface Spark {
-    sprite: Sprite,
-    position: PointData,
-    size: Size
-};
+const sparkPosition: Array<PointData> = [
+    {
+        x: 2500 / 6000,
+        y: 1470 / 3000
+    },
+    {
+        x: 2920 / 6000,
+        y: 1460 / 3000
+    },
+    {
+        x: 3185 / 6000,
+        y: 1850 / 3000
+    }
+];
 
 /**
  * The View for the vault.
@@ -59,7 +62,6 @@ export default class VaultView {
     #initialized = false;
     #texture: Record<string, Texture> = {};
     #sprite: Record<string, Sprite> = {};
-    #sparks: SparkState = { container: new Container(), animation: null, info: [] }
 
     #backgroundAspectRatio: number;
     #job: Record<string, Promise<any> | null> = {
@@ -68,6 +70,10 @@ export default class VaultView {
     };
 
     #stateDoor = VaultDoorState.Closed;
+    #sparkAnimation = gsap.timeline({
+        paused: true
+    });
+    #sparkContainer = new Container();
 
     constructor() {
         this.#backgroundAspectRatio = 1;
@@ -131,46 +137,10 @@ export default class VaultView {
         this.#sprite.doorOpenShadow = new Sprite(this.#texture.doorOpenShadow);
         this.#sprite.doorOpenShadow.anchor.set(0, 0.5);
 
-        this.#sparks.animation = gsap.timeline({
-            repeat: -1,
-            yoyo: false,
-            paused: true
-        });
-
-        for (let i = 0; i < sparkPositionData.length; ++i) {
-            const sparkPosition = sparkPositionData[i];
-            const sparkSize = (Math.floor(Math.random() * (128 - 24)) + 24) / 3000;
-            const spark: Spark = {
-                sprite: new Sprite(this.#texture.blink),
-                position: {
-                    x: sparkPosition[0],
-                    y: sparkPosition[1]
-                },
-                size: {
-                    width: sparkSize,
-                    height: sparkSize
-                }
-            };
-            spark.sprite.alpha = 0;
-            // spark.sprite.rotation = Math.random() * Math.PI * 2;
-            const duration = 0.5 + Math.random();
-            const startAt = Math.random() * Math.max(0, 5 - duration);
-            this.#sparks.info.push(spark);
-            this.#sparks.animation.to(spark.sprite, {
-                pixi: {
-                    alpha: 1
-                },
-                ease: 'power2.in',
-                duration: duration * 0.5
-            }, startAt);
-            this.#sparks.animation.to(spark.sprite, {
-                pixi: {
-                    alpha: 0
-                },
-                ease: 'power2.out',
-                duration: duration * 0.5
-            }, startAt + duration * 0.5);
-            this.#sparks.container.addChild(spark.sprite);
+        for (let i = 0; i < sparkPosition.length; ++i) {
+            const sprite = this.#sprite[`spark_${i}`] = new Sprite(this.#texture.blink);
+            sprite.anchor.set(0.5);
+            this.#sparkContainer.addChild(sprite);
         }
 
         this.pixi.renderer.addListener('resize', this.#onScreenResize, this);
@@ -190,16 +160,14 @@ export default class VaultView {
             this.pixi.stage.removeChild(this.#sprite.handle);
             this.pixi.stage.addChild(this.#sprite.doorOpenShadow);
             this.pixi.stage.addChild(this.#sprite.doorOpen);
-            this.pixi.stage.addChild(this.#sparks.container);
-            this.#sparks.animation?.play();
+            this.pixi.stage.addChild(this.#sparkContainer);
         } else {
             this.pixi.stage.addChild(this.#sprite.door);
             this.pixi.stage.addChild(this.#sprite.handleShadow);
             this.pixi.stage.addChild(this.#sprite.handle);
             this.pixi.stage.removeChild(this.#sprite.doorOpenShadow);
             this.pixi.stage.removeChild(this.#sprite.doorOpen);
-            this.pixi.stage.removeChild(this.#sparks.container);
-            this.#sparks.animation?.pause();
+            this.pixi.stage.removeChild(this.#sparkContainer);
         }
     }
 
@@ -207,6 +175,7 @@ export default class VaultView {
         this.#resizeBackground(width, height, _resolution);
         this.#resizeClosedDoor(width, height, _resolution);
         this.#resizeOpenedDoor(width, height, _resolution);
+        this.#resizeSparks(width, height, _resolution);
     }
 
     #resizeBackground(width: number, height: number, _resolution: number) {
@@ -246,14 +215,6 @@ export default class VaultView {
                 this.#sprite.background.height * resizeToFit,
             )
         }
-        this.#resizeSparks();
-    }
-
-    #resizeSparks() {
-        for (const spark of this.#sparks.info) {
-            spark.sprite.position.set(spark.position.x * this.#sprite.background.width, spark.position.y * this.#sprite.background.height);
-            spark.sprite.setSize(spark.size.width * this.#sprite.background.width, spark.size.height * this.#sprite.background.height);
-        }
     }
 
     #resizeClosedDoor(width: number, height: number, _resolution: number) {
@@ -287,6 +248,18 @@ export default class VaultView {
         this.#sprite.doorOpen.y = height * 0.5 - (30 / 3000) * this.#sprite.background.height;
         this.#sprite.doorOpenShadow.x = this.#sprite.doorOpen.x + (30 / 1245) * this.#sprite.doorOpen.width;
         this.#sprite.doorOpenShadow.y = this.#sprite.doorOpen.y + (60 / 1826) * this.#sprite.doorOpen.height;
+    }
+
+    #resizeSparks(width: number, height: number, _resolution: number) {
+        this.#sparkContainer.x = this.#sprite.background.x - this.#sprite.background.width * 0.5;
+        this.#sparkContainer.y = this.#sprite.background.y - this.#sprite.background.height * 0.5;
+        for (let i = 0; i < sparkPosition.length; ++i) {
+            const sprite = this.#sprite[`spark_${i}`];
+            sprite.x = sparkPosition[i].x * this.#sprite.background.width;
+            sprite.y = sparkPosition[i].y * this.#sprite.background.height;
+            sprite.width = (533 / 5995) * this.#sprite.background.width;
+            sprite.height = (533 / 3000) * this.#sprite.background.height;
+        }
     }
 
     async rotateHandleCCW() {
@@ -392,19 +365,19 @@ export default class VaultView {
                     // so animation will only be attempted if it actually switch the state.
                     this.#sprite.doorOpen.alpha = Number(this.#stateDoor === VaultDoorState.Opened);
                     this.#sprite.doorOpenShadow.alpha = Number(this.#stateDoor === VaultDoorState.Opened);
-                    this.#sparks.container.alpha = Number(this.#stateDoor === VaultDoorState.Opened);
+                    this.#sparkContainer.alpha = Number(this.#stateDoor === VaultDoorState.Opened);
                     this.#sprite.door.alpha = Number(this.#stateDoor === VaultDoorState.Closed);
                     this.#sprite.handleShadow.alpha = Number(this.#stateDoor === VaultDoorState.Closed);
                     this.#sprite.handle.alpha = Number(this.#stateDoor === VaultDoorState.Closed);
                     // Ensure all sprites are visible during the animation,
                     // addChild also place the sprite as the last child
                     // (removing it from the current child position)
+                    this.pixi.stage.addChild(this.#sparkContainer);
                     this.pixi.stage.addChild(this.#sprite.door);
                     this.pixi.stage.addChild(this.#sprite.handleShadow);
                     this.pixi.stage.addChild(this.#sprite.handle);
                     this.pixi.stage.addChild(this.#sprite.doorOpenShadow);
                     this.pixi.stage.addChild(this.#sprite.doorOpen);
-                    this.pixi.stage.addChild(this.#sparks.container);
                 },
                 onComplete: () => {
                     this.#stateDoor = state;
@@ -431,7 +404,7 @@ export default class VaultView {
             timeline.to([
                 this.#sprite.doorOpen,
                 this.#sprite.doorOpenShadow,
-                this.#sparks.container
+                this.#sparkContainer
             ], {
                 duration: 0.5,
                 ease: 'power2.inOut',
