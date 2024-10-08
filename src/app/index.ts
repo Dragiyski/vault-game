@@ -22,7 +22,7 @@ export default class VaultGame {
         }
         this.#initialized = true;
         try {
-            await this.view.init(options.view ?? {});
+            await this.view.init(options?.view ?? {});
             await this.controller.init();
         } catch (e) {
             this.#initialized = false;

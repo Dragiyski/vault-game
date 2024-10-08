@@ -14,6 +14,23 @@ export default defineConfig({
         },
         chunkSizeWarningLimit: 4096
     },
+    test: {
+        browser: {
+            provider: 'webdriverio',
+            enabled: true,
+            name: 'chrome',
+            isolate: true
+        },
+        include: [
+            '../test/browser/**/*.{test,spec}.ts'
+        ],
+        coverage: {
+            provider: 'istanbul',
+            enabled: true,
+            reportsDirectory: '../coverage',
+            exclude: ['vendor/**']
+        }
+    },
     plugins: [
         viteStaticCopy({
             targets: [

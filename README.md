@@ -34,6 +34,14 @@ npm install
 npm run dev
 ```
 
+## Testing
+
+To run the automated test for this application, execute (after installing the dependencies as shown above):
+
+```
+npm test
+```
+
 ## Code description
 
 The game code is located in `src/app`. It has 3 main components: model, view, and controller.
