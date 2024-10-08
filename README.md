@@ -42,6 +42,8 @@ To run the automated test for this application, execute (after installing the de
 npm test
 ```
 
+Testing will start a browser to run the browser/integration tests. Testing will also produce coverage report at `coverage/index.html`.
+
 ## Code description
 
 The game code is located in `src/app`. It has 3 main components: model, view, and controller.
